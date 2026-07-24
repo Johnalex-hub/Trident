@@ -9,7 +9,7 @@ mod streamer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    trident_common::logging::init("trident-indexer");
+    init_tracing();
 
     tracing::info!("Trident indexer starting");
 
@@ -55,4 +55,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Trident indexer stopped");
     Ok(())
+}
+
+/// Initialise tracing/logging, optionally enabling the tokio-console async
+/// profiler.
+///
+/// tokio-console is opt-in on two levels so it can never be reached in a normal
+/// deployment: it is compiled out unless the `tokio-console` cargo feature is
+/// built, and even then it stays off unless `TOKIO_CONSOLE_ENABLED=true`. The
+/// console server binds to `127.0.0.1:6669` by default (see console-subscriber
+/// docs / `TOKIO_CONSOLE_BIND`), so it is not publicly reachable.
+fn init_tracing() {
+    #[cfg(feature = "tokio-console")]
+    if std::env::var("TOKIO_CONSOLE_ENABLED").as_deref() == Ok("true") {
+        use tracing_subscriber::prelude::*;
+        let console_layer = console_subscriber::spawn();
+        // Keep the shared JSON log schema alongside the console profiler.
+        let json_layer =
+            trident_common::logging::JsonLayer::new("trident-indexer", std::io::stdout)
+                .with_filter(default_filter());
+        tracing_subscriber::registry()
+            .with(console_layer)
+            .with(json_layer)
+            .init();
+        tracing::warn!(
+            "tokio-console ENABLED on 127.0.0.1:6669 — internal/debug use only, never expose publicly"
+        );
+        return;
+    }
+
+    trident_common::logging::init("trident-indexer");
+}
+
+#[cfg(feature = "tokio-console")]
+fn default_filter() -> tracing_subscriber::EnvFilter {
+    tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"))
 }

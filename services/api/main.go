@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Depo-dev/trident/services/api/handlers"
+	"github.com/Depo-dev/trident/services/api/internal/profiling"
 	trident "github.com/Depo-dev/trident/services/api/internal/proto"
 	"github.com/Depo-dev/trident/services/api/middleware"
 	"google.golang.org/grpc"
@@ -48,6 +49,11 @@ func main() {
 	// RequestID is the outer layer so the correlation ids it attaches are
 	// visible to Logging (and every handler) when they run.
 	chain := middleware.RequestID(middleware.Logging(mux))
+
+	// Opt-in, internal-only pprof server (off unless PPROF_ENABLED=true). It is
+	// never mounted on the public mux above.
+	pprofSrv := profiling.Start()
+	defer profiling.Shutdown(pprofSrv)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
