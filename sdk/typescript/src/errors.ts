@@ -2,7 +2,8 @@ export type TridentErrorCode =
   | "NOT_FOUND"
   | "UNAUTHORIZED"
   | "RATE_LIMITED"
-  | "INTERNAL";
+  | "INTERNAL"
+  | "ITERATION_LIMIT";
 
 export class TridentError extends Error {
   readonly code: TridentErrorCode;

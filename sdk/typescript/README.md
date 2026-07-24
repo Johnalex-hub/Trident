@@ -35,6 +35,25 @@ if (hasMore && cursor) {
   const nextPage = await client.queryEvents({ after: cursor, limit: 50 });
 }
 
+// Or drain every page automatically with the async iterator — no manual
+// cursor/hasMore bookkeeping. Stops when the server has no more results.
+for await (const event of client.iterEvents({
+  contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM",
+  topic0: "transfer",
+})) {
+  console.log(event.id, event.transactionHash);
+}
+
+// A safety valve caps the number of pages fetched (default 100). If the limit
+// is hit while more results remain, a TridentError(code: "ITERATION_LIMIT")
+// is thrown; raise it for very large backfills:
+for await (const event of client.iterEvents(
+  { contractId: "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM" },
+  { maxPages: 1000 },
+)) {
+  // ...process event
+}
+
 // Fetch a single event by UUID
 const event = await client.getEventById({
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -106,6 +125,20 @@ try {
 | `ledgerTo?` | `number` | Inclusive upper bound on ledger sequence |
 | `after?` | `string` | Cursor from previous page |
 | `limit?` | `number` | Max events to return (1–200) |
+
+### `client.iterEvents(params, options?)` → `AsyncIterable<SorobanEvent>`
+
+Auto-paginating async iterator over `queryEvents`. Accepts the same `params` as
+`queryEvents` and follows the server cursor until `hasMore === false`, yielding
+each event. Any `TridentError` from an underlying page request propagates out of
+the `for await` loop unchanged.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `maxPages?` | `number` | Max pages to fetch before throwing `TridentError(code: "ITERATION_LIMIT")` (default `100`) |
+
+Also exported standalone as `iterEvents(queryEvents, params, options?)` for use
+without a full client instance.
 
 ### `client.getEventById(params)` → `Promise<SorobanEvent>`
 
