@@ -10,8 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	trident "github.com/Depo-dev/trident/services/api/internal/proto"
 	"github.com/Depo-dev/trident/services/api/handlers"
+	"github.com/Depo-dev/trident/services/api/internal/profiling"
+	trident "github.com/Depo-dev/trident/services/api/internal/proto"
 	"github.com/Depo-dev/trident/services/api/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -44,6 +45,11 @@ func main() {
 	mux.HandleFunc("GET /v1/events/{id}", eventsHandler.GetEvent)
 
 	chain := middleware.Logging(middleware.RequestID(mux))
+
+	// Opt-in, internal-only pprof server (off unless PPROF_ENABLED=true). It is
+	// never mounted on the public mux above.
+	pprofSrv := profiling.Start()
+	defer profiling.Shutdown(pprofSrv)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
