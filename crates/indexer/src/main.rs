@@ -1,5 +1,4 @@
 use tokio_util::sync::CancellationToken;
-use tracing_subscriber::EnvFilter;
 
 mod config;
 mod db;
@@ -10,9 +9,7 @@ mod streamer;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+    trident_common::logging::init("trident-indexer");
 
     tracing::info!("Trident indexer starting");
 

@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use tracing_subscriber::EnvFilter;
 
 pub mod trident {
     tonic::include_proto!("trident");
@@ -9,9 +8,7 @@ mod services;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .init();
+    trident_common::logging::init("trident-grpc-api");
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL is required");
 
