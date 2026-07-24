@@ -33,8 +33,14 @@ CREATE INDEX IF NOT EXISTS idx_soroban_events_topic_1           ON soroban_event
 -- contract filtered by primary topic (e.g. all "transfer" events for token X)
 CREATE INDEX IF NOT EXISTS idx_soroban_events_contract_topic_0  ON soroban_events (contract_id, topic_0);
 
--- GIN index for arbitrary topic containment queries
-CREATE INDEX IF NOT EXISTS idx_soroban_events_topics_gin        ON soroban_events USING GIN (topics);
+-- JSONB containment (`topics @> ...` / `data @> ...`) is intentionally NOT
+-- indexed for the MVP. The API exposes topic filtering only through the
+-- generated `topic_0`/`topic_1` columns (btree-indexed above); no handler
+-- issues a `@>` containment query, so a GIN index would only add
+-- write-amplification on this high-ingest table with no read benefit.
+-- See docs/db/jsonb-index-strategy.md for the full decision + EXPLAIN evidence.
+-- If arbitrary containment filters are added later, reintroduce:
+--   CREATE INDEX idx_soroban_events_topics_gin ON soroban_events USING GIN (topics jsonb_path_ops);
 
 -- Unique constraint: a given event position within a transaction is immutable
 ALTER TABLE soroban_events
