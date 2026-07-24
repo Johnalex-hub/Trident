@@ -31,7 +31,7 @@ COPY crates/common/src crates/common/src
 COPY crates/api/src crates/api/src
 COPY crates/api/build.rs crates/api/build.rs
 RUN mkdir -p crates/indexer/src && echo "fn main() {}" > crates/indexer/src/main.rs && \
-    touch crates/api/src/main.rs && \
+    touch crates/common/src/lib.rs crates/api/src/main.rs && \
     cargo build --release -p trident-api
 
 # ── runtime ──────────────────────────────────────────────────────────────────
