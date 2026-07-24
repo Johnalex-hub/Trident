@@ -1,9 +1,13 @@
 import { z } from "zod";
 import { httpStatusToError, TridentError } from "./errors.js";
 import { createSubscription } from "./subscription.js";
+import { iterEvents as iterEventsImpl } from "./iterator.js";
+import type { IterEventsOptions } from "./iterator.js";
 
 export { TridentError } from "./errors.js";
 export type { TridentErrorCode } from "./errors.js";
+export { iterEvents, DEFAULT_MAX_PAGES } from "./iterator.js";
+export type { IterEventsOptions, QueryEventsFn } from "./iterator.js";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -186,6 +190,30 @@ export class TridentClient {
       cursor: resp.next_cursor || null,
       hasMore: resp.has_more ?? false,
     };
+  }
+
+  /**
+   * Auto-paginating async iterator over {@link queryEvents}.
+   *
+   * Yields every matching event across every page, following the server's
+   * cursor automatically until there are no more results — so callers can just
+   * write `for await (const event of client.iterEvents(params))` instead of
+   * hand-rolling a `hasMore`/`cursor` loop.
+   *
+   * Stops when the server reports `has_more === false`. Fetches at most
+   * `options.maxPages` pages (default 100); if that limit is reached while more
+   * results remain, throws `TridentError` with code `ITERATION_LIMIT`. Any
+   * `TridentError` from an underlying page request propagates transparently.
+   */
+  iterEvents(
+    params: QueryEventsParams,
+    options?: IterEventsOptions,
+  ): AsyncIterable<SorobanEvent> {
+    return iterEventsImpl(
+      (p: QueryEventsParams) => this.queryEvents(p),
+      params,
+      options,
+    );
   }
 
   /**
