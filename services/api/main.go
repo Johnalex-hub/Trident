@@ -10,14 +10,16 @@ import (
 	"syscall"
 	"time"
 
-	trident "github.com/Depo-dev/trident/services/api/internal/proto"
 	"github.com/Depo-dev/trident/services/api/handlers"
+	trident "github.com/Depo-dev/trident/services/api/internal/proto"
 	"github.com/Depo-dev/trident/services/api/middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
+	middleware.InitLogger("trident-api")
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
@@ -43,7 +45,9 @@ func main() {
 	mux.HandleFunc("GET /v1/events", eventsHandler.ListEvents)
 	mux.HandleFunc("GET /v1/events/{id}", eventsHandler.GetEvent)
 
-	chain := middleware.Logging(middleware.RequestID(mux))
+	// RequestID is the outer layer so the correlation ids it attaches are
+	// visible to Logging (and every handler) when they run.
+	chain := middleware.RequestID(middleware.Logging(mux))
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", port),
