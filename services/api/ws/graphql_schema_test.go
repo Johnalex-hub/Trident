@@ -2,6 +2,7 @@ package ws
 
 import (
 	"context"
+	"flag"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,13 +19,20 @@ import (
 // that gets caught.
 //
 // Regenerate with: go test ./ws/ -run TestGraphQLSchemaSnapshot -update
+//
+// A test flag rather than an env var: scripts/check-env-reference.sh scans
+// services/api for os.Getenv and requires a docs/ENVIRONMENT.md row for
+// everything it finds, and a snapshot-regeneration knob is not a deployment
+// setting that belongs in that table. -update is also the standard Go
+// convention for golden files.
 
-var updateSnapshot = os.Getenv("UPDATE_SNAPSHOT") != ""
+var updateSnapshot = flag.Bool("update", false,
+	"rewrite testdata/graphql_schema.graphql from the current GraphQLSchema")
 
 const schemaSnapshotPath = "testdata/graphql_schema.graphql"
 
 func TestGraphQLSchemaSnapshot(t *testing.T) {
-	if updateSnapshot {
+	if *updateSnapshot {
 		if err := os.MkdirAll(filepath.Dir(schemaSnapshotPath), 0o755); err != nil {
 			t.Fatalf("create testdata dir: %v", err)
 		}
@@ -37,13 +45,13 @@ func TestGraphQLSchemaSnapshot(t *testing.T) {
 
 	want, err := os.ReadFile(schemaSnapshotPath)
 	if err != nil {
-		t.Fatalf("read snapshot (regenerate with UPDATE_SNAPSHOT=1): %v", err)
+		t.Fatalf("read snapshot (regenerate with `go test ./ws/ -run TestGraphQLSchemaSnapshot -update`): %v", err)
 	}
 
 	if normaliseSchema(string(want)) != normaliseSchema(GraphQLSchema) {
 		t.Errorf("the published GraphQL schema changed but %s was not updated.\n"+
 			"If the change is intended, regenerate with:\n"+
-			"    UPDATE_SNAPSHOT=1 go test ./ws/ -run TestGraphQLSchemaSnapshot\n"+
+			"    go test ./ws/ -run TestGraphQLSchemaSnapshot -update\n"+
 			"and review the diff — the SDKs generate against this schema, so a\n"+
 			"renamed or removed field is a client break.", schemaSnapshotPath)
 	}
