@@ -25,6 +25,7 @@ type OpenAPIModels struct {
 	ContractEventFieldSchema    *ContractEventFieldSchema    `json:"ContractEventFieldSchema,omitempty"`
 	ContractEventSchema         *ContractEventSchema         `json:"ContractEventSchema,omitempty"`
 	ContractEventSchemaResponse *ContractEventSchemaResponse `json:"ContractEventSchemaResponse,omitempty"`
+	ContractResponse            *ContractResponse            `json:"ContractResponse,omitempty"`
 	ContractSpecFunction        *ContractSpecFunction        `json:"ContractSpecFunction,omitempty"`
 	ContractSpecResponse        *ContractSpecResponse        `json:"ContractSpecResponse,omitempty"`
 	ContractStats               *ContractStats               `json:"ContractStats,omitempty"`
@@ -35,6 +36,7 @@ type OpenAPIModels struct {
 	EventListResponse           *EventListResponse           `json:"EventListResponse,omitempty"`
 	IndexerStatsResponse        *IndexerStatsResponse        `json:"IndexerStatsResponse,omitempty"`
 	ListAPIKeysResponse         *ListAPIKeysResponse         `json:"ListAPIKeysResponse,omitempty"`
+	ListContractsResponse       *ListContractsResponse       `json:"ListContractsResponse,omitempty"`
 	LivenessResponse            *LivenessResponse            `json:"LivenessResponse,omitempty"`
 	ReadyChecks                 *ReadyChecks                 `json:"ReadyChecks,omitempty"`
 	ReadyResponse               *ReadyResponse               `json:"ReadyResponse,omitempty"`
@@ -81,6 +83,17 @@ type ContractEventSchemaResponse struct {
 	Events                                               []ContractEventSchema `json:"events"`
 	// Network queried                                                         
 	Network                                              Network               `json:"network"`
+}
+
+type ContractResponse struct {
+	// Stellar contract id (C... strkey).            
+	ContractID                             string    `json:"contract_id"`
+	CreatedAt                              time.Time `json:"created_at"`
+	ID                                     string    `json:"id"`
+	// Ledger sequence indexing began from.          
+	IndexFrom                              int64     `json:"index_from"`
+	Label                                  *string   `json:"label,omitempty"`
+	Network                                *string   `json:"network,omitempty"`
 }
 
 type ContractSpecFunction struct {
@@ -234,6 +247,14 @@ type ListAPIKeysResponse struct {
 	HasMore                                                        bool             `json:"has_more"`
 	// Opaque cursor for the next page (null if has_more is false).                 
 	NextCursor                                                     string           `json:"next_cursor"`
+}
+
+type ListContractsResponse struct {
+	Contracts                                                      []ContractResponse `json:"contracts"`
+	// Whether another page is available.                                             
+	HasMore                                                        bool               `json:"has_more"`
+	// Opaque cursor for the next page (null if has_more is false).                   
+	NextCursor                                                     string             `json:"next_cursor"`
 }
 
 type LivenessResponse struct {

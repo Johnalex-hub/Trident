@@ -691,6 +691,28 @@ export interface components {
             /** @description Opaque cursor for the next page (null if has_more is false). */
             next_cursor: string | null;
         };
+        ListContractsResponse: {
+            contracts: components["schemas"]["ContractResponse"][];
+            /** @description Whether another page is available. */
+            has_more: boolean;
+            /** @description Opaque cursor for the next page (null if has_more is false). */
+            next_cursor: string | null;
+        };
+        ContractResponse: {
+            /** Format: uuid */
+            id: string;
+            /** @description Stellar contract id (C... strkey). */
+            contract_id: string;
+            network?: string | null;
+            label?: string | null;
+            /**
+             * Format: int64
+             * @description Ledger sequence indexing began from.
+             */
+            index_from: number;
+            /** Format: date-time */
+            created_at: string;
+        };
         ErrorResponse: {
             error: {
                 /** @description Error code (e.g., INVALID_ARGUMENT, INTERNAL, UNAVAILABLE, CONFLICT) */

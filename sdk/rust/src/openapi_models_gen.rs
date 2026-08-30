@@ -25,6 +25,8 @@ pub struct OpenApiModels {
 
     pub contract_event_schema_response: Option<ContractEventSchemaResponse>,
 
+    pub contract_response: Option<ContractResponse>,
+
     pub contract_spec_function: Option<ContractSpecFunction>,
 
     pub contract_spec_response: Option<ContractSpecResponse>,
@@ -45,6 +47,8 @@ pub struct OpenApiModels {
 
     #[serde(rename = "ListAPIKeysResponse")]
     pub list_api_keys_response: Option<ListApiKeysResponse>,
+
+    pub list_contracts_response: Option<ListContractsResponse>,
 
     pub liveness_response: Option<LivenessResponse>,
 
@@ -126,6 +130,23 @@ pub struct ContractEventSchemaResponse {
 
     /// Network queried
     pub network: Network,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ContractResponse {
+    /// Stellar contract id (C... strkey).
+    pub contract_id: String,
+
+    pub created_at: String,
+
+    pub id: String,
+
+    /// Ledger sequence indexing began from.
+    pub index_from: i64,
+
+    pub label: Option<String>,
+
+    pub network: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -356,6 +377,17 @@ pub enum IndexerStatsResponseStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ListApiKeysResponse {
     pub api_keys: Vec<ApiKeyResponse>,
+
+    /// Whether another page is available.
+    pub has_more: bool,
+
+    /// Opaque cursor for the next page (null if has_more is false).
+    pub next_cursor: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ListContractsResponse {
+    pub contracts: Vec<ContractResponse>,
 
     /// Whether another page is available.
     pub has_more: bool,
