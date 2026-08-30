@@ -337,6 +337,19 @@ func NewBackendError(code httputil.ErrorCode, message string) error {
 	return &gqlError{code: code, message: message}
 }
 
+// BackendErrorCode reports the canonical code carried by an error from
+// NewBackendError, and whether it carried one at all. The concrete error type
+// is unexported, so without this a caller outside this package — the backend
+// implementation in handlers, or its tests — has no way to tell which
+// classification a failure produced.
+func BackendErrorCode(err error) (httputil.ErrorCode, bool) {
+	var ge *gqlError
+	if !errorsAs(err, &ge) {
+		return "", false
+	}
+	return ge.code, true
+}
+
 // gqlResolveQuery dispatches one parsed operation against the backend and
 // returns the `data` object for the reply.
 //
