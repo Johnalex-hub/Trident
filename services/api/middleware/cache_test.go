@@ -22,6 +22,34 @@ func newCacheTestRedis(t *testing.T) *redis.Client {
 	return client
 }
 
+// waitForCacheVersion polls until key holds want, or fails the test.
+//
+// The deadline is generous on purpose. StartCacheInvalidator consumes the
+// stream in its own goroutine, so a busy CI runner can schedule the XAdd well
+// before the invalidator next reads — and when the poll gives up, t.Fatalf
+// runs miniredis's t.Cleanup while that goroutine is still dialling, which
+// surfaces as a confusing "dial tcp 127.0.0.1:0: connection refused" rather
+// than the actual timeout. A short deadline here buys nothing: the happy path
+// returns as soon as the value appears.
+func waitForCacheVersion(t *testing.T, rdb *redis.Client, key, want string) {
+	t.Helper()
+	deadline := time.Now().Add(30 * time.Second)
+	var (
+		v   string
+		err error
+	)
+	for {
+		v, err = rdb.Get(context.Background(), key).Result()
+		if err == nil && v == want {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("%s was not bumped in time (last value=%q err=%v)", key, v, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // simpleJSONHandler returns a fixed body but lets the test see the call count.
 func simpleJSONHandler(calls *int32, body string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -249,17 +277,7 @@ func TestStartCacheInvalidator_BumpsVersionOnNewEvent(t *testing.T) {
 		t.Fatalf("XAdd: %v", err)
 	}
 
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		v, err := rdb.Get(context.Background(), "cachever:CCONTRACT1").Result()
-		if err == nil && v == "1" {
-			return
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("cachever:CCONTRACT1 was not bumped in time (last value=%q err=%v)", v, err)
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
+	waitForCacheVersion(t, rdb, "cachever:CCONTRACT1", "1")
 }
 
 func TestStartCacheInvalidator_IgnoresMessagesWithoutContractID(t *testing.T) {
@@ -291,17 +309,7 @@ func TestStartCacheInvalidator_IgnoresMessagesWithoutContractID(t *testing.T) {
 		t.Fatalf("XAdd: %v", err)
 	}
 
-	deadline := time.Now().Add(3 * time.Second)
-	for {
-		v, err := rdb.Get(context.Background(), "cachever:CAFTERBAD").Result()
-		if err == nil && v == "1" {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("cachever:CAFTERBAD was not bumped in time (last value=%q err=%v)", v, err)
-		}
-		time.Sleep(20 * time.Millisecond)
-	}
+	waitForCacheVersion(t, rdb, "cachever:CAFTERBAD", "1")
 
 	if exists, _ := rdb.Exists(context.Background(), "cachever:").Result(); exists != 0 {
 		t.Error("an empty-string contract id must never produce a cachever: key")
